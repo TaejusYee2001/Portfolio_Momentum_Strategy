@@ -1,3 +1,4 @@
+import os
 import json
 import time
 import random
@@ -18,10 +19,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Define url
 url = "https://stockanalysis.com/list/biggest-companies/"
 
+# Define output path
+data_dir = 'src/data/'
+os.makedirs(os.path.dirname(data_dir), exist_ok=True)
+
 # Define Chrome webdriver options
 options = Options()
 options.add_argument('--no-sandbox')
-options.add_argument('--headless=new')
+options.add_argument('--headless')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--disable-gpu')
 options.add_argument('--window-size=1920,1080')
@@ -30,7 +35,7 @@ options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) Apple
 
 # Try to initialize webdriver
 try: 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome()
 except Exception as e: 
     logging.error(f"Failed to initialize WebDriver: {str(e)}")
     raise
@@ -61,7 +66,7 @@ try:
         
         # Save tickers to a JSON file
         tickers_data = {"tickers": all_tickers}
-        with open('src/data/tickers.json', 'w') as f: 
+        with open(os.path.join(data_dir, 'tickers.json'), 'w') as f: 
             json.dump(tickers_data, f)
         logging.info(f"Tickers on page {current_page} saved to tickers.json")
         

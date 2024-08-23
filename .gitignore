@@ -2,3 +2,4 @@ logs/
 data/
 .env
 __pycache__/
+momentum_env/

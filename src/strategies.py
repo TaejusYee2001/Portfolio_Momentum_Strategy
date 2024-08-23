@@ -8,17 +8,22 @@ from datetime import datetime, timedelta
 
 class MomentumStrategy(bt.Strategy):
     params = (
-        ('momentum_window', 21), 
-        ('total_window', 252), 
-        ('long_percentile', 0.1), 
+        ("momentum_window", 21), 
+        ("total_window", 252), 
+        ("long_percentile", 0.1),
+        ("stock_data", None)
     )
-    def __init__(self): 
+    def __init__(self):
+        print("Initializing MomentumStrategy...")
         self.data_feeds = self.datas
         self.last_rebalance_bar = None
         self.portfolio_value = []
         self.start_date = None
         self.momentum_window_counter = 0
         self.total_counter = 0
+        
+        self.pending_stock_data = dict(self.params.stock_data)
+        print(self.params.momentum_window)
 
     def next(self):
         self.portfolio_value.append(self.broker.getvalue())
