@@ -1,5 +1,9 @@
 logs/
-data/
+stock_data/
+securities_23y_1d/
+tickers.json
+tickers_info.json
+ticker_conid_map.json
 .env
 __pycache__/
 momentum_env/

@@ -1,5 +1,6 @@
 import os
 import json
+import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 from pprint import pprint
@@ -11,14 +12,14 @@ from client_portal.bin.utils import start_client_portal, stop_client_portal, log
 
 if __name__ == "__main__":
 
-    load_dotenv()
+    """ load_dotenv()
 
     paper_username = os.getenv("PAPER_USERNAME")
     paper_password = os.getenv("PAPER_PASSWORD")
     paper_account_number = os.getenv("PAPER_ACCOUNT_NUMBER")
     
     start_client_portal()
-    login_client_portal(paper_username, paper_password)
+    login_client_portal(paper_username, paper_password) """
 
     #tickers_file_path = "../src/data/tickers.json"
     #with open(tickers_file_path, 'r') as file:
