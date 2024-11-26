@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from pprint import pprint
 from dotenv import load_dotenv
 
-from src.data import MarketData
+from IB_Data import MarketData
 from client_portal.bin.utils import start_client_portal, stop_client_portal, login_client_portal
 
 

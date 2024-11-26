@@ -1,170 +1,63 @@
 import os
 import json
-import time
 import pandas as pd
-from pprint import pprint
-from ib_api.client import IBClient
-from datetime import datetime, timedelta, timezone
+import yfinance as yf
 
-tickers_info_file_path = '../src/data/tickers_info.json'
-ticker_conid_map_file_path = "../src/data/ticker_conid_map.json"
-
-class MarketData: 
-    def __init__(self, tickers, period, resolution, exchange=["NYSE", "NASDAQ"]):
-        self.tickers = tickers
-        self.period = period
+class HistoricalData: 
+    def __init__(self, start_date, end_date, resolution): 
+        self.start_date = start_date
+        self.end_date = end_date
         self.resolution = resolution
-        self.exchange = exchange
-        self.securities_dir_path = f"../src/data/securities_{period}_{resolution}/"
-
-    def initialize_ib_client(self, username, account_number): 
-        """Assumes client is authorized through client portal"""
-        self.ib_client = IBClient(username, account_number)
-        self.ib_client.create_session()
-
-    
-    def extract_conid(self, response_data, ticker):
-        for ticker_data in response_data:
-            for item in ticker_data:
-                if isinstance(item, dict) and 'symbol' in item and 'description' in item:
-                    if item['symbol'] == ticker and item['description'] in self.exchange:
-                        return item['conid']
-        return None
-    
-    def _securities_dir_exists(self): 
-        if os.path.exists(self.securities_dir): 
-            return True
-        else: 
-            return False
-
-    def fetch_historical_data(self, update_tickers=False, update_ticker_conid_map=False):
-        if update_tickers:
-            self._update_ticker_info()
+        self.valid_dates = set()
         
-        if update_ticker_conid_map: 
-            self._update_ticker_conid_map()
-
-        with open(ticker_conid_map_file_path, 'r') as file: 
-            ticker_conid_map = json.load(file)
-
-        for ticker in self.tickers:
-            print(f"Fetching data for ticker: {ticker}")
-            conid = ticker_conid_map.get(ticker)
-            if conid is not None:
-                
-                start_time = datetime.now(timezone.utc)
-                end_time = start_time - self._parse_period(self.period)
-
-                print("Start time: ", self._format_datetime(start_time))
-                print("End time: ", self._format_datetime(end_time))
-
-                all_data = pd.DataFrame()
-
-                while start_time > end_time:
-                    formatted_start_time = self._format_datetime(start_time)
-                    
-                    print(f"Fetching data starting from {formatted_start_time}")
-                    response = self.ib_client.market_data_history(
-                        conid=conid,
-                        period=self.period,
-                        bar=self.resolution,
-                        start_time=formatted_start_time,
-                    )
-
-                    data = response['data']
-                    if not data:
-                        break
-                    
-                    df = pd.DataFrame(data)
-                    print("Data length: ", len(df))
-                    df['t'] = df['t'].apply(lambda x: datetime.fromtimestamp(x / 1000, tz=timezone.utc))
-                    df = df.rename(columns={
-                        'o': 'Open',
-                        'c': 'Close',
-                        'h': 'High',
-                        'l': 'Low',
-                        'v': 'Volume',
-                        't': 'Datetime'
-                    })
-                    df = df[['Datetime', 'Open', 'High', 'Low', 'Close', 'Volume']]
-                    
-                    all_data = pd.concat([all_data, df], ignore_index=True)
-
-                    df = df.sort_values(by='Datetime').reset_index(drop=True)
-                    
-                    earliest_datetime = df['Datetime'].iloc[0]  # Get the last datetime from the fetched data
-                    start_time = earliest_datetime
-
-                
-                all_data = all_data.sort_values(by='Datetime').reset_index(drop=True)
-                all_data = all_data[all_data['Datetime'] >= end_time]
-
-                if not os.path.exists(self.securities_dir_path): 
-                    os.makedirs(self.securities_dir_path)
-
-                csv_file_name = f"{ticker}.csv"
-                csv_file_path = os.path.join(self.securities_dir_path, csv_file_name)
-
-                if os.path.exists(csv_file_path):
-                    os.remove(csv_file_path)
-
-                all_data.to_csv(csv_file_path, index=False)
-
-                print(f"Data for {ticker} saved to {csv_file_path}")
-
-        print(f"Data for all securities saved to {self.securities_dir_path}")
-
-    def _update_ticker_info(self): 
-        tickers_info = []
-
-        for ticker in self.tickers:
-            response = self.ib_client.symbol_search(symbol=ticker)
+        # Directories and filenames
+        self.output_dir = "data/stock_data/"
+        self.S_and_P_500_snapshot_file = "data/s+p500_snapshots/tickers_snapshot.csv"
+        self.tickers_file = "data/tickers/s+p_500_tickers.json"
+        
+        # Get tickers and download raw data for time period
+        self._generate_tickers_json()
+        self._download_stock_data()
+        self._format_stock_data()
+        
+    def _generate_tickers_json(self): 
+        df = pd.read_csv(self.S_and_P_500_snapshot_file, index_col='date', parse_dates=True)
+        filtered_df = df.loc[self.start_date:self.end_date]
+        unique_tickers = set()
+        
+        for tickers_string in filtered_df['tickers']: 
+            tickers = [ticker.strip() for ticker in tickers_string.split(',')]
+            unique_tickers.update(tickers)
             
-            print(f"Fetching info for ticker: {ticker}")
-            tickers_info.append(response)
-
-        with open(tickers_info_file_path, 'w') as file:
-            json.dump(tickers_info, file, indent=4, sort_keys=True)
-        print(f"Tickers info saved to {tickers_info_file_path}")
-
-    def _update_ticker_conid_map(self): 
-        with open(tickers_info_file_path, 'r') as file: 
-            tickers_info = json.load(file)
-
-        ticker_conid_map = {}
+        unique_tickers_list = sorted(unique_tickers)
+        with open(self.tickers_file, 'w') as json_file: 
+            json.dump(unique_tickers_list, json_file, indent=4)
+            
+    def _download_stock_data(self): 
+        with open(self.tickers_file, 'r') as file: 
+            self.tickers_list = json.load(file)
         
-        for ticker in self.tickers: 
-            conid = self.extract_conid(tickers_info, ticker)
-            ticker_conid_map[ticker] = conid
+        for ticker in self.tickers_list:
+            if not os.path.exists(os.path.join(self.output_dir, f"{ticker}.csv")):
+                data = yf.download(ticker, start=self.start_date, end=self.end_date, interval=self.resolution, progress=False)
+                
+                if not data.empty:
+                    self.valid_dates.update(data.index.strftime('%Y-%m-%d'))
+                    ticker_filename = os.path.join(self.output_dir, f"{ticker}.csv")
+                    data.to_csv(ticker_filename)
+                    #print(f"Saved {ticker}.csv to {self.output_dir}")
+                
+        self.valid_dates = sorted(self.valid_dates)
+        
+    def _format_stock_data(self):
+        for ticker in self.tickers_list:
+            ticker_filename = os.path.join(self.output_dir, f"{ticker}.csv")
+            if os.path.exists(ticker_filename):
+                df = pd.read_csv(ticker_filename, index_col='Date', parse_dates=True)
 
-        ticker_conid_map_json = json.dumps(ticker_conid_map, indent=4)
-
-        with open(ticker_conid_map_file_path, 'w') as file: 
-            file.write(ticker_conid_map_json)
-
-        print(f"Ticker-conid map saved to {ticker_conid_map_file_path}")
-
-
-    def _parse_period(self, period_str):
-        """Convert period string to a timedelta object."""
-        period_type = period_str[-1]
-        period_value = int(period_str[:-1])
-
-        if period_type == 'd':
-            return timedelta(days=period_value)
-        elif period_type == 'w':
-            return timedelta(weeks=period_value)
-        elif period_type == 'h':
-            return timedelta(hours=period_value)
-        elif period_type == 'm':
-            # Approximate a month as 30 days
-            return timedelta(days=period_value * 30)
-        elif period_type == 'y':
-            # Approximate a year as 365 days
-            return timedelta(days=period_value * 365)
-        else:
-            raise ValueError(f"Unsupported period type: {period_type}")
-
-    def _format_datetime(self, dt):
-        """Format datetime as YYYYMMDD-HH:MM:SS."""
-        return dt.strftime('%Y%m%d-%H:%M:%S')
+                df = df.reindex(pd.to_datetime(self.valid_dates))
+                
+                df.fillna(-1, inplace=True)
+                
+                df.to_csv(ticker_filename)
+                print(f"Formatted {ticker}.csv to include all valid dates")

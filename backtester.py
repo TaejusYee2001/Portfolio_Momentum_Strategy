@@ -11,10 +11,13 @@ import backtrader as bt
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+from src.strategies import MomentumStrategy, Benchmark
+from src.data import HistoricalData
+
 # NASDAQ 100 
 # RUSSEL 1000
         
-logging.basicConfig(
+""" logging.basicConfig(
     level=logging.INFO, 
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
     handlers=[
@@ -140,45 +143,6 @@ class MomentumStrategy(bt.Strategy):
                 
             logger.info(f"{current_datetime} - Finished rebalancing. ")
             logger.info("-----")
-
-        """ if (((self.total_counter % self.p.momentum_window == 0) and (self.total_counter >= self.p.total_window))
-        or ((self.total_counter % self.p.momentum_window == self.p.momentum_window - 1) and (self.total_counter >= self.p.total_window))):
-            
-            current_date = self.datetime.datetime(0)
-            logger.info("-----")
-            logger.info(f"Started rebalancing on {current_date}")
-            momentum = {}
-            for data in self.datas:
-                if len(data) >= self.p.momentum_window:
-                    momentum_factor = self.compute_momentum(data, self.p.momentum_window, self.p.total_window)
-                    if momentum_factor > 0:
-                        momentum[data._name] = momentum_factor
-            
-            sorted_assets = sorted(momentum.items(), key=lambda x: x[1], reverse=True)
-
-            # Calculate top assets based on the percentile
-            top_count = int(math.ceil(self.p.num_stocks * self.p.long_percentile))
-            top_assets = [name for name, factor in sorted_assets[:top_count]]
-            
-            positions = []
-            for data in self.datas:
-                if data._name not in top_assets and self.getposition(data).size > 0:
-                    self.order_target_percent(data, 0)
-                    logger.info(f"{current_date} - Target order placed to sell {data._name}. {data._name} no longer has high momentum.")
-                elif data._name in top_assets and self.getposition(data).size > 0:
-                    self.order_target_percent(data, 1.0 / len(top_assets))
-                    logger.info(f"{current_date} - Rebalancing old stock {data._name}. Target order placed for {data._name} to allocate {1.0 / len(top_assets):.2%} of the portfolio.")
-                elif data._name in top_assets and self.getposition(data).size == 0: 
-                    self.order_target_percent(data, 1.0 / len(top_assets))
-                    logger.info(f"{current_date} - Buying new stock {data._name}. Target order placed for {data._name} to allocate {1.0 / len(top_assets):.2%} of the portfolio.")
-                
-                if self.getposition(data).size > 0: 
-                    positions.append(data)
-
-            logger.info(f"{current_date} - All positions: {[(position._name, self.getposition(position).size, self.getposition(position).price) for position in positions]}")
-            
-            logger.info(f"Finished rebalancing on {current_date}")
-            logger.info("-----") """
         
     def compute_momentum(self, data, momentum_window, total_window):
         # Convert Backtrader data feed to pandas DataFrame
@@ -223,7 +187,7 @@ class MomentumStrategy(bt.Strategy):
         else: 
             momentum_factor = 0
 
-        return momentum_factor
+        return momentum_factor """
 
 class MomentumStrategyBacktester:
     def __init__(self, start_date, end_date, num_stocks, initial_cash, momentum_window, total_window, long_percentile):
@@ -248,7 +212,7 @@ class MomentumStrategyBacktester:
             return
         
         if os.path.exists(csv_filename):
-            print(f"Adding {csv_filename} to backtesting engine")
+            print(f"{self.num_stocks_added}: Adding {csv_filename} to backtesting engine")
             df = pd.read_csv(csv_filename, index_col='Date', parse_dates=True)
             start_date = df.index[0]
             data = bt.feeds.PandasData(dataname=df, 
@@ -286,7 +250,7 @@ class MomentumStrategyBacktester:
             num_stocks=self.num_stocks
         )
         self.benchmark_cerebro.addstrategy(Benchmark)
-        csv_filename = "src/data/stock_data/SPY.csv"
+        csv_filename = "data/stock_data/SPY.csv"
         df = pd.read_csv(csv_filename, index_col='Date', parse_dates=True)
         data = bt.feeds.PandasData(dataname=df, 
                                        fromdate=self.start_date,
@@ -325,63 +289,69 @@ class MomentumStrategyBacktester:
 
         return results, benchmark_results
 
-    """ def run_backtest(self):
-        self.cerebro.addstrategy(
-            MomentumStrategy,
-            momentum_window=self.momentum_window,
-            total_window=self.total_window,
-            long_percentile=self.long_percentile, 
-            num_stocks = self.num_stocks
-        )
-        
-        print(f"Starting portfolio value: {self.cerebro.broker.getvalue():,.2f}")
-        results = self.cerebro.run()
-        print(f"Final portfolio value: {self.cerebro.broker.getvalue():,.2f}")
-        
-        # Extract portfolio values and dates for plotting
-        strategy = results[0]
-        portfolio_values = strategy.portfolio_values
-        dates = strategy.dates        
-
-        # Plot portfolio value against SPY value
-        plt.figure(figsize=(12, 6))
-        plt.plot(dates, portfolio_values, label='Portfolio Value')
-        plt.xlabel('Date')
-        plt.ylabel('Value')
-        plt.title('Portfolio Value Over Time')
-        plt.legend()
-        plt.grid()
-
-        # Save the plot to a file
-        plot_filename = f"src/data/output_plots/varying_universe_size/N={self.num_stocks}.png"
-        plt.savefig(plot_filename)
-        plt.close() """
-
 if __name__ == "__main__": 
-    # Load tickers
-    """ print("Loading tickers")
-    tickers_file_path = "src/data/tickers.json"
+    
+    start = datetime(2000, 1, 1)
+    end = datetime(2024, 8, 23)
+    resolution = '1d'
+    
+    data = HistoricalData(start_date=start, end_date=end, resolution=resolution)
+    
+    
+    
+    """ output_file_path = "data/tickers/s+p_500_tickers.json"
+    
+    tickers_snapshot_file_path = "data/s+p500_snapshots/tickers_snapshot.csv"
+    df = pd.read_csv(tickers_snapshot_file_path, index_col='date', parse_dates=True)
+    filtered_df = df.loc[start:end]
+    unique_tickers = set()
+    
+    for tickers_string in filtered_df['tickers']: 
+        tickers = [ticker.strip() for ticker in tickers_string.split(',')]
+        unique_tickers.update(tickers)
+        
+    unique_tickers_list = sorted(unique_tickers)
+    with open(output_file_path, 'w') as json_file: 
+        json.dump(unique_tickers_list, json_file, indent=4) """
+    
+    """ tickers_file_path = "src/data/tickers.json"
     with open(tickers_file_path, 'r') as file:
         tickers_data = json.load(file)
-    tickers = tickers_data['tickers'][:1000] """
+    tickers = tickers_data['tickers'][:1]
+    
+    start = datetime(2000, 1, 1)
+    end = datetime(2024, 8, 23)
+    interval = '1d'
+    stock_data_dir = "src/data/stock_data"
+    
+    for ticker in tickers:
+        ticker = 'FB'
+        data = yf.download(ticker, start=start, end=end, interval=interval)
+        ticker_info = yf.Ticker(ticker).info
+        market_cap = ticker_info.get('marketCap', None)
+        data['Market Cap'] = market_cap
+        
+        ticker_filename = os.path.join(stock_data_dir, f"{ticker}.csv")
+        data.to_csv(ticker_filename)
+        print(f"Saved {ticker}.csv") """
+        
+    
+    
+    
 
-    start = datetime(2001, 1, 2)
+    """ start = datetime(2001, 1, 2)
     end = datetime(2022, 12, 31)
-    print(start.date())
-
-    tickers_snapshot_file_path = "src/data/s+p500_snapshots/tickers_snapshot.csv"
+    
+    tickers_snapshot_file_path = "data/s+p500_snapshots/tickers_snapshot.csv"
     df = pd.read_csv(tickers_snapshot_file_path, index_col='date', parse_dates=True)
-    print(df.head())
 
     # Assuming the column containing tickers is named 'tickers'
     tickers_string = df.asof(start)['tickers']    
-    print(tickers_string)
 
     # Convert the tickers string into a list of tickers
     tickers = [ticker.strip() for ticker in tickers_string.split(',')]
-    print(tickers)
 
-    N = 250
+    N = 20
 
     backtester = MomentumStrategyBacktester(
         start_date=start,
@@ -398,41 +368,4 @@ if __name__ == "__main__":
         stock_data_filename = os.path.join(csv_dir, f"{ticker}.csv")
         backtester.add_stock_data(stock_data_filename)
     
-    backtester.run_backtest()
-    
-    """ spy_data = yf.download('SPY', start=datetime(2001, 1, 1), end=datetime(2022, 12, 31))
-    plt.figure(figsize=(12, 6))
-    plt.plot(spy_data.index, spy_data['Close'], label='SPY Value')
-    plt.xlabel('Date')
-    plt.ylabel('Value')
-    plt.title('Portfolio Value vs. SPY Value Over Time')
-    plt.legend()
-    plt.grid()
-    plt.show()
-    
-    # Save the plot to a file
-    plot_filename = f"src/data/output_plots/varying_universe_size/SPY.png"
-    plt.savefig(plot_filename)
-    plt.close()
-    
-    universe_sizes = range(50, 501, 50)  # Universe sizes from 50 to 500 in increments of 50
-
-    for size in universe_sizes:
-        print(f"Running backtest with universe size: {size}")
-
-        backtester = MomentumStrategyBacktester(
-            start_date=datetime(2001, 1, 1),
-            end_date=datetime(2022, 12, 31),
-            num_stocks=size, 
-            initial_cash=100000,
-            momentum_window=21,
-            total_window=252,
-            long_percentile=0.1
-        )
-
-        csv_dir = "src/data/stock_data"
-        for ticker in tickers[:size]:  # Limit the number of tickers based on current universe size
-            stock_data_filename = os.path.join(csv_dir, f"{ticker}.csv")
-            backtester.add_stock_data(stock_data_filename)
-        
-        backtester.run_backtest() """
+    backtester.run_backtest() """
