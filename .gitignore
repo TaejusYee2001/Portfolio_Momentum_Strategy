@@ -1,0 +1,7 @@
+stock_data/
+benchmark/
+logs/
+__pycache__/
+env/
+data/tickers/
+.env
