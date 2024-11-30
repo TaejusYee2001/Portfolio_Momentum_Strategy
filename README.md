@@ -41,13 +41,13 @@ sectors.
 
 ## Results
 - Hurst exponent for different time series: Plotted below are four time series expressing different levels of mean-reverting and trending behaviour. We can see from the labeled values that hurst exponents above 0.5 indicate trending behaviour whereas hurst exponents below 0.5 indicate mean-reverting behaviour. For more information on the mathematics behind the hurst exponent, see docs/hurst_exponent_derivation.pdf.
-![image](https://github.com/Ruminate-Capital/trading/blob/main/results/hurst_exponent_for_different_time_series.png)
+![image](https://github.com/TaejusYee2001/Portfolio_Momentum_Strategy/blob/main/results/hurst_exponent_for_different_time_series.png)
 - Hurst exponent visualization for SPY: Plotted below are the hurst exponent and p-value curves. We can notice that generally, the hurst exponent of SPY is above 0.5, indicating trending market behaviour. Additionally, in severe market downturns, the hurst drops significantly, and its p-value increases significantly, making this indicator good for determining market regimes.
-![image](https://github.com/Ruminate-Capital/trading/blob/main/results/hurst_exponent_visualization.png)
+![image](https://github.com/TaejusYee2001/Portfolio_Momentum_Strategy/blob/main/results/hurst_exponent_visualization.png)
 - Backtest results: The strategy exhibits comparable returns with far lower risk in comparison to a buy-and-hold baseline strategy executed on the Pacer Trendpilot 100 (PTNQ) ETF. Plotted below are the portfolio return, hurst exponent and p-value, and drawdown curves.
-![image](https://github.com/Ruminate-Capital/trading/blob/main/results/etf_portfolio_momentum_backtest.png)
+![image](https://github.com/TaejusYee2001/Portfolio_Momentum_Strategy/blob/main/results/etf_portfolio_momentum_backtest.png)
 - Monte Carlo optimization: Plotted below are the Monte Carlo simulation results. Optimizing the strategy drawdown over the percentage allocation and rebalancing frequency parameters, we arrived at 0.38 as the optimal percentage of the ticker universe to trade at a given time, and 14 days as the best rebalancing frequency.
-![image](https://github.com/Ruminate-Capital/trading/blob/main/results/monte_carlo_results.png)
+![image](https://github.com/TaejusYee2001/Portfolio_Momentum_Strategy/blob/main/results/monte_carlo_results.png)
 
 ## Areas for Further Research
 - Exploring alternative momentum calculation methods.
