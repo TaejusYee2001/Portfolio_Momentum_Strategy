@@ -24,7 +24,7 @@ pip install -r requirements.txt
 ## Usage Instructions (Backtest)
 To run the backtest with the predefined list of stocks we chose, simply run the backtest.py file. 
 
-Note: this repository also supports execution on historical S&P 500 stocks, fetched using delisted data from EodHD. To test this functionality, see ``` src/data.py```, and use the SPYHistoricalData class. This code will check the list of historical S&P 500 constituents and trade them in backtests, simulating historical portfolio management without introducing survivorship bias. 
+Note: this repository also supports execution on historical S&P 500 stocks, fetched using delisted data from EodHD. To test this functionality, see ```src/data.py```, and use the SPYHistoricalData class. This code will check the list of historical S&P 500 constituents and trade them in backtests, simulating historical portfolio management without introducing survivorship bias. 
 
 ## Usage Instructions (Live)
 Launch trader workstation and log in. Then, open notebooks/etf_momentum_hurst_live_trading.ipynb and run all cells. 
